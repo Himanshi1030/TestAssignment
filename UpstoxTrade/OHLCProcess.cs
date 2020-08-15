@@ -17,6 +17,7 @@ namespace UpstoxTrade
         static int barNum = 1;
         static List<OhlcData> ohlcOutputPerTrade = new List<OhlcData>();
         static List<Trade> tradesList = new List<Trade>();
+        static double tradeClose = 0;
         
         public List<Trade> ReadInputJson(string stockName)
         {
@@ -32,7 +33,7 @@ namespace UpstoxTrade
         }
        
 
-        public List<OhlcData> ProcessTrades()
+        public void ProcessTrades()
         {
             List<Trade> currentIntervalTrades = new List<Trade>();
             
@@ -62,20 +63,34 @@ namespace UpstoxTrade
                     }
                 }
             }
-            return ohlcOutputPerTrade;
+            Consoleoutput();
+           
         }
-        public OhlcData ComputeOHLC(List<Trade> trades, int barNum)
+        private OhlcData ComputeOHLC(List<Trade> trades, int barNum)
         {
             OhlcData data = new OhlcData();
-            data.Open = trades.OrderBy(x => x.Id).Select(x => x.TradePrice).FirstOrDefault();
-            data.High = trades.Max(x => x.TradePrice);
-            data.Low = trades.Min(x => x.TradePrice);
+            data.Open = barNum==1 ? trades.OrderBy(x => x.Id).Select(x => x.TradePrice).FirstOrDefault() : tradeClose;
+            data.High = trades.Max(x => x.TradePrice) < data.Open ? data.Open : trades.Max(x => x.TradePrice);
+            data.Low = trades.Min(x => x.TradePrice)> data.Open ? data.Open : trades.Min(x => x.TradePrice);
             data.Close = trades.OrderByDescending(x => x.Id).Select(x => x.TradePrice).FirstOrDefault();
             data.Volume = trades.Sum(x => x.QuantityTraded);
             data.Symbol = trades.Select(x => x.StockName).FirstOrDefault();
             data.Bar_num = barNum;
+            tradeClose = data.Close;
             return data;
         }
      
+        public void Consoleoutput()
+        {
+            if(ohlcOutputPerTrade.Count()>0)
+            {
+                Console.WriteLine("\n===Stock:{0}====\n", ohlcOutputPerTrade.Select(x => x.Symbol).FirstOrDefault());
+                foreach(var output in ohlcOutputPerTrade.Take(100))
+                {
+                    var result = JsonConvert.SerializeObject(output);
+                    Console.WriteLine("\n{0}",result);
+                }
+            }
+        }
     }
 }
