@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using UpstoxTrade.Model;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 
 namespace UpstoxTrade
 {
@@ -16,11 +17,27 @@ namespace UpstoxTrade
     {
         static void Main(string[] args)
         {
-            OHLCProcess ohlc = new OHLCProcess();
-            List<Trade> trades = ohlc.ReadInputJson();
+            Task _reader = Task.Run(Reader);
+            _reader.Wait();
+            Task _compute = Task.Run(Compute);
+            _compute.Wait();
 
-            ohlc.ProcessTrades(trades.Where(x => x.StockName == "XETHZUSD").ToList());
+           
         }
-       
+
+
+
+        static async Task Reader()
+        {
+            OHLCProcess ohlc = new OHLCProcess();
+            ohlc.ReadInputJson("XETHZUSD");
+           
+        }
+        static async Task Compute()
+        {
+            OHLCProcess ohlc = new OHLCProcess();
+            ohlc.ProcessTrades();
+        }
+
     }
 }

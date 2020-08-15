@@ -15,40 +15,50 @@ namespace UpstoxTrade
         static DateTime barStarttime = new DateTime();
         static DateTime barEndtime = new DateTime();
         static int barNum = 1;
-        public List<Trade> ReadInputJson()
+        static List<OhlcData> ohlcOutputPerTrade = new List<OhlcData>();
+        static List<Trade> tradesList = new List<Trade>();
+        
+        public List<Trade> ReadInputJson(string stockName)
         {
             var jsonData = File.ReadAllText(@"..\..\..\Input\trades.json");
                 var trades = JsonConvert.DeserializeObject<List<Trade>>(jsonData);
+
+            foreach(Trade t in trades)
+            {
+                if(stockName.Equals(t.StockName))
+                Queue.tradesqueue.Enqueue(t);
+            }
             return trades;
         }
+       
 
-        public List<OhlcData> ProcessTrades(List<Trade> trades)
+        public List<OhlcData> ProcessTrades()
         {
-            List<OhlcData> ohlcOutputPerTrade = new List<OhlcData>();
             List<Trade> currentIntervalTrades = new List<Trade>();
-            foreach (Trade trade in trades)
+            
+            while(Queue.tradesqueue.Count() > 0)
             {
-               
+                Trade newtrade = Queue.tradesqueue.Dequeue();
                 if(currentIntervalTrades.Count() == 0)
                 {
-                    barStarttime = trade.TradeDateTime;
+                    barStarttime = newtrade.TradeDateTime;
                     barEndtime = barStarttime.AddSeconds(barInterval);
-                    currentIntervalTrades.Add(trade);
+                    currentIntervalTrades.Add(newtrade);
                 }
                 else
                 {
-                    if(trade.TradeDateTime >=  barStarttime && trade.TradeDateTime <= barEndtime)
+                    if(newtrade.TradeDateTime >=  barStarttime && newtrade.TradeDateTime <= barEndtime)
                     {
-                        currentIntervalTrades.Add(trade);
+                        currentIntervalTrades.Add(newtrade);
                     }
-                    else if (trade.TradeDateTime > barEndtime)
+                    else if (newtrade.TradeDateTime > barEndtime)
                     {
                         ohlcOutputPerTrade.Add( ComputeOHLC(currentIntervalTrades , barNum));
                         barStarttime = barEndtime.AddSeconds(1);
                         barEndtime = barEndtime.AddSeconds(barInterval);
                         ++barNum;
                         currentIntervalTrades = new List<Trade>();
-                        currentIntervalTrades.Add(trade);
+                        currentIntervalTrades.Add(newtrade);
                     }
                 }
             }
